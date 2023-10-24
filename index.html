@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Allocation Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .input-label {
+            font-weight: bold;
+        }
+        input[type="number"] {
+            padding: 8px;
+            margin: 5px 0;
+            width: 20%;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:active {
+            background-color: #004da6;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .allocation-results {
+            background-color: #f2f2f2;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Memory Allocation Simulation</h1>
+        <div>
+            <label class="input-label" for="numPartitions">Number of Partitions:</label>
+            <input type="number" id="numPartitions">
+        </div>
+        <div>
+            <label class="input-label" for "numProcesses">Number of Processes:</label>
+            <input type="number" id="numProcesses">
+        </div>
+        <button id="setupButton">Setup</button>
+        <div id="partitionInput" style="display: none;">
+            <h2>Partition Sizes:</h2>
+        </div>
+        <div id="processInput" style="display: none;">
+            <h2>Process Memory Requirements:</h2>
+        </div>
+        <button id="allocateButton" style="display: none;">Allocate Memory</button>
+        <div class="results" id="results" style="display: none;">
+            <div class="allocation-results" id="firstFitResults"></div>
+            <div class="allocation-results" id="bestFitResults"></div>
+            <div class="allocation-results" id="worstFitResults"></div>
+        </div>
+    </div>
+
+    <script>
+        const setupButton = document.getElementById("setupButton");
+        const partitionInput = document.getElementById("partitionInput");
+        const processInput = document.getElementById("processInput");
+        const allocateButton = document.getElementById("allocateButton");
+        const results = document.getElementById("results");
+        const firstFitResults = document.getElementById("firstFitResults");
+        const bestFitResults = document.getElementById("bestFitResults");
+        const worstFitResults = document.getElementById("worstFitResults");
+
+        setupButton.addEventListener("click", () => {
+            const numPartitions = parseInt(document.getElementById("numPartitions").value);
+            const numProcesses = parseInt(document.getElementById("numProcesses").value);
+
+            partitionInput.innerHTML = "<h2>Partition Sizes:</h2>";
+            for (let i = 1; i <= numPartitions; i++) {
+                partitionInput.innerHTML += `<div><label for="partition${i}">Partition ${i}:</label><input type="number" id="partition${i}"></div>`;
+            }
+
+            processInput.innerHTML = "<h2>Process Memory Requirements:</h2>";
+            for (let i = 1; i <= numProcesses; i++) {
+                processInput.innerHTML += `<div><label for="process${i}">Process ${i}:</label><input type="number" id="process${i}"></div>`;
+            }
+
+            allocateButton.style.display = "block";
+            partitionInput.style.display = "block";
+            processInput.style.display = "block";
+        });
+
+        allocateButton.addEventListener("click", () => {
+            const numPartitions = parseInt(document.getElementById("numPartitions").value);
+            const numProcesses = parseInt(document.getElementById("numProcesses").value);
+
+            const partitions = [];
+            const processes = [];
+
+            for (let i = 1; i <= numPartitions; i++) {
+                partitions.push(parseInt(document.getElementById(`partition${i}`).value));
+            }
+
+            for (let i = 1; i <= numProcesses; i++) {
+                processes.push(parseInt(document.getElementById(`process${i}`).value));
+            }
+
+            const firstFitAllocation = firstFit(partitions.slice(), processes.slice());
+            const bestFitAllocation = bestFit(partitions.slice(), processes.slice());
+            const worstFitAllocation = worstFit(partitions.slice(), processes.slice());
+
+            showResults(firstFitResults, "First Fit", firstFitAllocation);
+            showResults(bestFitResults, "Best Fit", bestFitAllocation);
+            showResults(worstFitResults, "Worst Fit", worstFitAllocation);
+
+            results.style.display = "block";
+        });
+
+        function showResults(element, title, allocation) {
+            let html = `<h3>${title} Allocation:</h3>`;
+            for (let i = 0; i < allocation.length; i++) {
+                html += `<p>Process ${i + 1} is allocated to Partition ${allocation[i]}</p>`;
+            }
+            element.innerHTML = html;
+        }
+
+        function firstFit(partitions, processes) {
+            let allocation = new Array(processes.length).fill(-1);
+
+            for (let i = 0; i < processes.length; i++) {
+                for (let j = 0; j < partitions.length; j++) {
+                    if (partitions[j] >= processes[i]) {
+                        allocation[i] = j;
+                        partitions[j] -= processes[i];
+                        break;
+                    }
+                }
+            }
+
+            return allocation;
+        }
+
+        function bestFit(partitions, processes) {
+            let allocation = new Array(processes.length).fill(-1);
+
+            for (let i = 0; i < processes.length; i++) {
+                let bestFitIndex = -1;
+                for (let j = 0; j < partitions.length; j++) {
+                    if (partitions[j] >= processes[i]) {
+                        if (bestFitIndex === -1 || partitions[j] < partitions[bestFitIndex]) {
+                            bestFitIndex = j;
+                        }
+                    }
+                }
+
+                if (bestFitIndex !== -1) {
+                    allocation[i] = bestFitIndex;
+                    partitions[bestFitIndex] -= processes[i];
+                }
+            }
+
+            return allocation;
+        }
+        function worstFit(partitions, processes) {
+            let allocation = new Array(processes.length).fill(-1);
+
+            for (let i = 0; i < processes.length; i++) {
+                let worstFitIndex = -1;
+                for (let j = 0; j < partitions.length; j++) {
+                    if (partitions[j] >= processes[i]) {
+                        if (worstFitIndex === -1 || partitions[j] > partitions[worstFitIndex]) {
+                            worstFitIndex = j;
+                        }
+                    }
+                }
+
+                if (worstFitIndex !== -1) {
+                    allocation[i] = worstFitIndex;
+                    partitions[worstFitIndex] -= processes[i];
+                }
+            }
+
+            return allocation;
+        }
+        function getUniqueColors(numColors) {
+            const colors = [];
+            for (let i = 0; i < numColors; i++) {
+                const hue = (360 / numColors) * i;
+                colors.push(`hsla(${hue}, 70%, 50%, 0.6)`);
+            }
+            return colors;
+        }
+    </script>
+</body>
+</html>
